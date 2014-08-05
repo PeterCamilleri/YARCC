@@ -1,0 +1,40 @@
+#YARCC - Yet Another Ruby Compiler Compiler
+PARSE_TREE 'V 0.0.0' 'A parse tree for parsing parse trees.'
+  TARGETS <parse_tree> <comment>;
+
+<parse_tree> = <parse_tree_header> ?<open_section> +<statement> 'END'
+               ?<close_section>;
+
+<parse_tree_header> = 'PARSE_TREE' <version> <description>
+                      'TARGETS' +<non-terminal> ';';
+<version> <description> = <string>;
+
+<open_section> = '%OPEN' <ruby_code> '%%'
+<close_section> = '%CLOSE' <ruby_code> '%%'
+
+<statement> = +<non-terminal> ?<action> '=' <expression> ';';
+<non-terminal> = '<' +[ALPHA DIGIT '_' '-'] '>';
+
+<expression> = <term> *('|' <term>);
+
+<term> = +(?<predicate> ?<modifier> <factor> ?<action>);
+<predicate> = '%IF' <ruby_code> '%%'
+<modifier> = '!' | '?' | '+' | '*';
+<action> = '%DO' <ruby_code> '%%';
+
+<factor> =  <non-terminal> | <range> | <string> | '(' <expression> ')';
+
+<range> = '[' +<character_set> ?('-' +<character_set>) ']';
+<character_set> = <character> ?('..' <character>)
+                | 'ANY' | 'PRINTABLE' | 'SPACE' | 'ALPHA' | 'DIGIT' | 'HEX';
+<character> = '\'' <in_a_string> '\'';
+
+<string> = '\'' *<in_a_string> '\'' *('<<' <string>);
+<in_a_string> = ([PRINTABLE-'\'' '\\']) | '\\\'' | '\\\\' | '\\n' |
+                ('\\' ['x' 'X'] +HEX);
+
+<ruby_code> = *(('%' [PRINTABLE-'%']) | [PRINTABLE-'%']);
+
+<comment> = '#' *[PRINTABLE] [\n];
+
+END

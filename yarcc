@@ -1,0 +1,18 @@
+<NotepadPlus>
+    <Project name="YARCC">
+        <Folder name="docs">
+            <File name="docs\yarcc.language" />
+        </Folder>
+        <Folder name="lib">
+            <File name="lib\yarcc.rb" />
+        </Folder>
+        <Folder name="tests">
+            <File name="tests\yarcc_test.rb" />
+        </Folder>
+        <File name="rakefile.rb" />
+        <File name=".gitignore" />
+        <File name="license.txt" />
+        <File name="readme.txt" />
+        <File name="sire.rb" />
+    </Project>
+</NotepadPlus>
