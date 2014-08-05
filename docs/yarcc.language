@@ -1,39 +1,40 @@
 #YARCC - Yet Another Ruby Compiler Compiler
-PARSE_TREE 'V 0.0.0' 'A parse tree for parsing parse trees.'
-  TARGETS <parse_tree> <comment>;
+PARSE_TREE 'V 0.0.1' 'A parse tree for parsing parse trees.'
+  TARGETS <parse tree> <comment>;
 
-<parse_tree> = <parse_tree_header> ?<open_section> +<statement> 'END'
-               ?<close_section>;
+<parse tree> = <parse tree header> ?<open section> +<statement> 'END'
+               ?<close section>;
 
-<parse_tree_header> = 'PARSE_TREE' <version> <description>
+<parse tree header> = 'PARSE_TREE' <version> <description>
                       'TARGETS' +<non-terminal> ';';
 <version> <description> = <string>;
 
-<open_section> = '%OPEN' <ruby_code> '%%'
-<close_section> = '%CLOSE' <ruby_code> '%%'
+<open section> = '<%OPEN' <ruby code> '%>'
+<close section> = '<%CLOSE' <ruby code> '%>'
 
 <statement> = +<non-terminal> ?<action> '=' <expression> ';';
-<non-terminal> = '<' +[ALPHA DIGIT '_' '-'] '>';
+<non-terminal> = '<' [PRINTABLE - '>' ' ']
+                  ?(*[PRINTABLE - '>'] [PRINTABLE - '>' ' ']) '>';
 
 <expression> = <term> *('|' <term>);
 
 <term> = +(?<predicate> ?<modifier> <factor> ?<action>);
-<predicate> = '%IF' <ruby_code> '%%'
+<predicate> = '<%?' <ruby_code> '%>'
 <modifier> = '!' | '?' | '+' | '*';
-<action> = '%DO' <ruby_code> '%%';
+<action> = '<%' <ruby_code> '%>';
 
-<factor> =  <non-terminal> | <range> | <string> | '(' <expression> ')';
+<factor> =  <non-terminal> | <set> | <string> | '(' <expression> ')';
 
-<range> = '[' +<character_set> ?('-' +<character_set>) ']';
-<character_set> = <character> ?('..' <character>)
-                | 'ANY' | 'PRINTABLE' | 'SPACE' | 'ALPHA' | 'DIGIT' | 'HEX';
+<set> = '[' +<character_set> ?('-' +<character_set>) ']';
+<character set> = <character> ?('..' <character>) | 'ANY' | 'BOL'  | 'EOL'
+                | 'PRINTABLE' | 'SPACE' | 'ALPHA' | 'DIGIT' | 'HEX';
 <character> = '\'' <in_a_string> '\'';
 
 <string> = '\'' *<in_a_string> '\'' *('<<' <string>);
-<in_a_string> = ([PRINTABLE-'\'' '\\']) | '\\\'' | '\\\\' | '\\n' |
-                ('\\' ['x' 'X'] +HEX);
 
-<ruby_code> = *(('%' [PRINTABLE-'%']) | [PRINTABLE-'%']);
+<in a string> = ([PRINTABLE-'\'' '\\']) | '\\' PRINTABLE | ('$' +HEX);
+
+<ruby code> = *(('%' [PRINTABLE-'>']) | [PRINTABLE-'%']);
 
 <comment> = '#' *[PRINTABLE] [\n];
 
