@@ -1,41 +1,50 @@
 #YARCC - Yet Another Ruby Compiler Compiler
-PARSE_TREE 'V 0.0.1' 'A parse tree for parsing parse trees.'
+PARSE_TREE 'V 0.0.2' 'A parse tree for parsing parse trees.'
   TARGETS <parse tree> <comment>;
+<% puts "Opening parse of the grammar file #{context[:file_name]}."
+   puts "Description = #{context[:description]}."
+   puts "Version = #{context[:version]}."
+   puts "Targets = #{context[:targets]}." %>
 
-<parse tree> = <parse tree header> ?<open section> +<statement> 'END'
-               ?<close section>;
+<parse tree>   = <parse tree header> ?<action> +<statement> "END" ?<action>;
 
-<parse tree header> = 'PARSE_TREE' <version> <description>
-                      'TARGETS' +<non-terminal> ';';
+<parse tree header> = "PARSE_TREE" <version> <description> "TARGETS" +<non-terminal> ';';
 <version> <description> = <string>;
 
-<open section> = '<%OPEN' <ruby code> '%>'
-<close section> = '<%CLOSE' <ruby code> '%>'
+<statement>    = <target> '=' <expression> ';';
+<target>       = +(<non-terminal> ?<action> | '(' +<non-terminal> ')' ?<action>);
+<non-terminal> = '<' +[PRINTABLE - '>'] '>';
+<expression>   = <term> *('|' <term>);
 
-<statement> = +<non-terminal> ?<action> '=' <expression> ';';
-<non-terminal> = '<' [PRINTABLE - '>' ' ']
-                  ?(*[PRINTABLE - '>'] [PRINTABLE - '>' ' ']) '>';
+<term> = +(?<action> ?<modifier> <factor> ?('>>' <set>) ?<action>);
+# Note: The >> operator is a peek ahead. The following <set> must be
+# present, but is not 'consumed' by the parser.
 
-<expression> = <term> *('|' <term>);
+<modifier>     = '?' | '+' | '*';
+# Where:
+# ? is 0 or 1 repetitions of the target factor;
+# + is 1 or more repetitions;
+# * is 0 or more repetitions.
 
-<term> = +(?<predicate> ?<modifier> <factor> ?<action>);
-<predicate> = '<%?' <ruby_code> '%>'
-<modifier> = '!' | '?' | '+' | '*';
-<action> = '<%' <ruby_code> '%>';
+<action>       = '<%' *('%' [ANY - '>'] | [ANY - '%']) '%>';
 
-<factor> =  <non-terminal> | <set> | <string> | '(' <expression> ')';
+<factor>       = <non-terminal> | <set> | <string> | <keyword> | '(' <expression> ')';
+<set>          = '[' +<char set> ?('-' +<char set>) ']';
+<char set>     = <character> ?('..' <character>)
+               | 'ANY' | 'BOL' | 'EOL' | 'BOF'   | 'EOF' | 'SPACE' | 'BREAK'
+               | 'PRINTABLE' | 'ALPHA' | 'DIGIT' | 'HEX';
+<character>    = '\'' <in_a_string> '\'';
 
-<set> = '[' +<character_set> ?('-' +<character_set>) ']';
-<character set> = <character> ?('..' <character>) | 'ANY' | 'BOL'  | 'EOL'
-                | 'PRINTABLE' | 'SPACE' | 'ALPHA' | 'DIGIT' | 'HEX';
-<character> = '\'' <in_a_string> '\'';
+<string>       = '\'' *<in_a_string> '\'' *('<<' <string>);
+# The '<<' operator exists to allow for multi-line string values.
 
-<string> = '\'' *<in_a_string> '\'' *('<<' <string>);
+<keyword>      = '"' +[ALPHA '_'] '"'
+# The keyword "if" is short for 'if' >> [ANY - ALPHA '_']
 
-<in a string> = ([PRINTABLE-'\'' '\\']) | '\\' PRINTABLE | ('$' +HEX);
+<in a string>  = ([PRINTABLE-'\'' '\\']) | '\\n' | '\\z' | '\\\\' | '\\'' |
+                ('\\' ['X' 'x'] +HEX ';') ;
 
-<ruby code> = *(('%' [PRINTABLE-'>']) | [PRINTABLE-'%']);
-
-<comment> = '#' *[PRINTABLE] [\n];
-
+<comment>      = '#' *[PRINTABLE] [EOL, EOF];
 END
+
+<% puts "Closing parse of the grammar file #{context[:file_name]}." %>
