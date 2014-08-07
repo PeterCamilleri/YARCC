@@ -1,19 +1,29 @@
 #YARCC - Yet Another Ruby Compiler Compiler
-PARSE_TREE 'V 0.0.2' 'A parse tree for parsing parse trees.'
-  TARGETS <parse tree> <comment>;
+
+PARSE_TREE 'V 0.0.3' 'A parse tree for parsing parse trees.'
+  TARGETS <parse tree> <comment>
+  OPTIONS NO_INDENT;
+
 <% puts "Opening parse of the grammar file #{context[:file_name]}."
    puts "Description = #{context[:description]}."
    puts "Version = #{context[:version]}."
    puts "Targets = #{context[:targets]}." %>
 
-<parse tree>   = <parse tree header> ?<action> +<statement> "END" ?<action>;
+<parse tree>   = <parse tree header> ?<action> +<statement> {"END"} ?<action>;
 
-<parse tree header> = "PARSE_TREE" <version> <description> "TARGETS" +<non-terminal> ';';
+<parse tree header> = "PARSE_TREE" <version> <description>
+                      "TARGETS" +<non-terminal> ';'
+                      ?("OPTIONS" +<option>);
 <version> <description> = <string>;
+<option>       = 'INDENT' | 'NO_INDENT'
+# INDENT    = Source code indenting affects code parsing.
+# NO_INDENT = Source code indenting ignored. (Default)
 
 <statement>    = <target> '=' <expression> ';';
+
 <target>       = +(<non-terminal> ?<action> | '(' +<non-terminal> ')' ?<action>);
 <non-terminal> = '<' +[PRINTABLE - '>'] '>';
+
 <expression>   = <term> *('|' <term>);
 
 <term> = +(?<action> ?<modifier> <factor> ?('>>' <set>) ?<action>);
@@ -27,24 +37,47 @@ PARSE_TREE 'V 0.0.2' 'A parse tree for parsing parse trees.'
 # * is 0 or more repetitions.
 
 <action>       = '<%' *('%' [ANY - '>'] | [ANY - '%']) '%>';
+# The contents of the action are Ruby code. The syntax of that code is not
+# a part of this grammar.
 
-<factor>       = <non-terminal> | <set> | <string> | <keyword> | '(' <expression> ')';
+<factor>       = <non-terminal> | <set> | <string> | <keyword>
+               | '(' <expression> ')' | '{' <expression> '}'
+               | 'INDENT' | 'OUTDENT'  ;
+# The use of { <expression> } denotes that the expression is case insensitive.
+# If the INDENT option is specified in the parse tree header, then
+# an INDENT token is generated each time the code is further indented than
+# previously, and an OUTDENT token is generated for each level of indent that
+# was removed when the source code is less indented than previously.
+
 <set>          = '[' +<char set> ?('-' +<char set>) ']';
+# The char sets in the first section are included in the set.
+# The char sets in the optional section following the '-' are excluded.
+
 <char set>     = <character> ?('..' <character>)
                | 'ANY' | 'BOL' | 'EOL' | 'BOF'   | 'EOF' | 'SPACE' | 'BREAK'
-               | 'PRINTABLE' | 'ALPHA' | 'DIGIT' | 'HEX';
+               | 'PRINTABLE' | 'ALPHA' | 'DIGIT' | 'HEX' | 'OCTAL' | 'BINARY';
+# BOF   = Beginning of File     EOF   = End of File
+# BOL   = BOF | EOL             EOL   = '\xA;' | '\xD;\xA;' | '\xD;' | EOF
+# SPACE = +(' ' | '\x9;)'       BREAK = +(' ' | '\x9;' | EOL | EOF)
+# PRINTABLE = [ANY - '\x00;'..'\x1F;' '\x7F;']
+
+# Notes:
+# If the set includes either ANY or PRINTABLE, then only exclusions are allowed.
+# A set may not exclude ANY or PRINTABLE.
+
 <character>    = '\'' <in_a_string> '\'';
 
 <string>       = '\'' *<in_a_string> '\'' *('<<' <string>);
 # The '<<' operator exists to allow for multi-line string values.
 
 <keyword>      = '"' +[ALPHA '_'] '"'
-# The keyword "if" is short for 'if' >> [ANY - ALPHA '_']
+# The keyword "if" is short for  ('if' >> [ANY - ALPHA '_'])
 
-<in a string>  = ([PRINTABLE-'\'' '\\']) | '\\n' | '\\z' | '\\\\' | '\\'' |
-                ('\\' ['X' 'x'] +HEX ';') ;
+<in a string>  = ([PRINTABLE-'\'' '\\']) | '\\\\' | '\\''
+               | ('\\' ['X' 'x'] +HEX ';') ;
 
 <comment>      = '#' *[PRINTABLE] [EOL, EOF];
+
 END
 
 <% puts "Closing parse of the grammar file #{context[:file_name]}." %>
