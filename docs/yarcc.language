@@ -1,8 +1,8 @@
-# YARCC - Yet Another Ruby Compiler Compiler
+# RCCK - The Ruby Compiler Construction Kit
 # This parser specification will be translated into Ruby code that implements
 # a parser of the same specification.
 
-PARSE_TREE 'V 0.0.4' 'A YARCC parse tree for parsing YARCC parse trees.'
+PARSE_TREE 'V 0.0.5' 'A RCCK parse tree for parsing RCCK parse trees.'
   OPTIONS NO_INDENT;
 
 <% puts "Opening parse of the grammar file #{parser[:source_name]}."
@@ -14,7 +14,7 @@ PARSE_TREE 'V 0.0.4' 'A YARCC parse tree for parsing YARCC parse trees.'
 
 #The first production rule is the top level 'target' rule.
 <parse tree>   = ?<init action> <parse tree header> ?<open action> +<statement>
-                 {"END"} ?<close action>;
+                 "END" ?<close action>;
 #Notes:
 # The init action is an optional Ruby code block that is called before the
 # balance of the parse tree is processed. If this returns false, processing is
@@ -42,8 +42,14 @@ PARSE_TREE 'V 0.0.4' 'A YARCC parse tree for parsing YARCC parse trees.'
 
 <statement>    = <target>   '='  <expression> ';'
                | <set name> "is" <set>        ';';
+# Notes:
+# Non terminals and char sets may not be redefined.
+#
+# Forward references are allowed for non terminals but not char sets.
+#
+# Non terminals and char set may not have the same name.
 
-<target>       = +(<non-terminal> ?<action> | '(' +<non-terminal> ')' ?<action>);
+<target>       = +<non-terminal>;
 
 <set name>     = +[UPPER '_'];
 
@@ -51,7 +57,7 @@ PARSE_TREE 'V 0.0.4' 'A YARCC parse tree for parsing YARCC parse trees.'
 
 <expression>   = <term> *('|' <term>);
 
-<term> = +(?<prologue> ?<modifier> <factor> ?('>>' <set>) ?<epilogue>);
+<term> = +(<spaces> ?<modifier> <factor> ?(<spaces> '>>' <spaces> <set>));
 # Notes:
 # The prologue block is used to make additional checks before the parse is
 # attempted. If this returns true, the parse proceeds else it is skipped.
@@ -69,16 +75,9 @@ PARSE_TREE 'V 0.0.4' 'A YARCC parse tree for parsing YARCC parse trees.'
 # + is 1 or more repetitions;
 # * is 0 or more repetitions.
 
-<prologue> <epilogue> = <action>;
-
-<action>       = '<%' *('%' [ANY - '>'] | [ANY - '%']) '%>';
-# Note:
-# The contents of the action are Ruby code. The syntax of that code is not
-# a part of this grammar.
-
-<factor>       = <non-terminal> | <set> | <set name> | <string> | <keyword>
-               | '(' <expression> ')' | '{' <expression> '}'
-               | 'INDENT' | 'OUTDENT'  ;
+<factor>       = <non-terminal> | <set> | <set name> | <string>
+               | <keyword> | <action> | '(' <expression> ')' | '{' <expression> '}'
+               | 'INDENT'  | 'OUTDENT'  ;
 # Notes:
 # The use of { <expression> } denotes that the expression is case insensitive.
 #
@@ -128,7 +127,15 @@ PARSE_TREE 'V 0.0.4' 'A YARCC parse tree for parsing YARCC parse trees.'
 # The keyword "bla" is short for  ('bla' >> [ANY - ALPHA '_'])
 
 <in a string>  = ([PRINTABLE-'\'' '\\']) | '\\\\' | '\\''
-               | ('\\' ['X' 'x'] +HEX ';') ;
+               | ('\\'           +DIGIT  ';')
+               | ('\\' ['B' 'b'] +BINARY ';')
+               | ('\\' ['O' 'o'] +OCTAL  ';')
+               | ('\\' ['X' 'x'] +HEX    ';') ;
+
+<action>       = '<%' *('%' [ANY - '>'] | [ANY - '%']) '%>';
+# Note:
+# The contents of the action are Ruby code. The syntax of that code is not
+# a part of this grammar.
 
 END
 

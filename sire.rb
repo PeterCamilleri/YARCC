@@ -1,11 +1,10 @@
 # coding: utf-8
-# Really simple program # 3
 # A Simple Interactive Ruby Environment
-# SIRE Version 0.2.7
+# SIRE Version 0.3.0
 
 require 'readline'
-require 'pp'
-require_relative 'lib/yarcc'
+require 'pp'         # deprecated.
+
 include Readline
 
 class Object
@@ -32,33 +31,51 @@ def q
 end
 
 def eval_puts(str)
-  puts str
+  puts str + "\n"
   eval str
 end
 
-puts "Welcome to SIRE for FlexArray"
+puts "Welcome to SIRE for the RCCK"
 puts "Simple Interactive Ruby Environment"
 puts
 puts "Use command 'q' to quit."
 puts
-@done = false
+
+eval_puts "require './lib/yarcc'"
+eval_puts "require './lib/yarcc/flex_format'"
+puts
+
+eval_puts "@a = RCCK::ParserBootstrap.new"
+puts
+
+@done    = false
+@running = false
 
 until @done
   begin
     line = readline('SIRE>', true)
+    @running = true
     result = eval line
-    pp result unless result.nil?
-  rescue Interrupt
-    @done = true
-    puts
-    puts
-    pp "I'm done here!"
+    @running = false
+    puts result unless line.length == 0
+  rescue Interrupt => e
+    if @running
+      @running = false
+      puts "\nExecution Interrupted!"
+      puts "\n#{e.class} detected: #{e}\n"
+      puts e.backtrace
+    else
+      puts "\nI'm outta here!'"
+      @done = true
+    end
+
+    puts "\n"
+
   rescue Exception => e
-    puts
-    puts "#{e.class} detected: #{e}"
+    puts "\n#{e.class} detected: #{e}\n"
     puts e.backtrace
     puts
   end
 end
 
-puts
+puts "\n\n"
