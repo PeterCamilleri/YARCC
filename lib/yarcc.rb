@@ -21,6 +21,7 @@ require_relative "yarcc/one_or_more"
 require_relative "yarcc/literal"
 require_relative "yarcc/keyword"
 require_relative "yarcc/char_set"
+require_relative "yarcc/spread_value"
 
 module RCCK
 
@@ -69,7 +70,7 @@ module RCCK
       set_char_set('EOL',       CharSet.new(["\x0A\x0D", :eof]))
       set_char_set('BOL',       CharSet.new(["\x0A\x0D", :eof, :bof]))
 
-      set_char_set('BREAK',     CharSet.new([" \x09\x0A\x0D", :eof, :bof]))
+      set_char_set('BREAK',     CharSet.new([" \x09\x0A\x0D\x1A\xA0", :eof, :bof]))
 
       # Bootstrap the parser for parsers.
       #<parse tree>   = ?<init action> <parse tree header> ?<open action>
@@ -113,8 +114,6 @@ module RCCK
 
       #<version> <description> = <string>;
       non_terminal('version').value =
-        non_terminal('string')
-
       non_terminal('description').value =
         non_terminal('string')
 
@@ -130,7 +129,7 @@ module RCCK
     # Compile the parse grammar into Ruby.
     # All parse methods return a true/false value to indicate success/failure.
     def parse(src, dst)
-      parse_info = ParseInfo.new(self, src, BranchBuffer.new)
+      parse_info = ParseInfo.new(self, src, BranchBuffer.new(6))
 
       if @target.parse(parse_info)
         parse_info.dst.write_out(dst)
@@ -143,20 +142,17 @@ module RCCK
     end
 
     def get_char_set(name)
-      @non_terminals[name]
+      result = @non_terminals[name]
+      fail "Missing entry for #{@name}" unless result
+      fail "The entry #{@name} is not a char set" unless result.is_a?(CharSet)
+      result
     end
 
     def set_char_set(name, value)
-      fail "Invalid redefinition of #{@name}" if @value
+      fail "Invalid redefinition of #{@name}" if @non_terminals[name]
       fail "Invalid value for char set #{@name}" unless value.is_a?(CharSet)
       @non_terminals[name] = value
     end
 
   end
-
 end
-
-
-
-
-

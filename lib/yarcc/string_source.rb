@@ -13,10 +13,10 @@ module RCCK
     end
 
     def peek
-      if posn < 0
+      if @posn < 0
         :bof
       elsif posn < @length
-        @source_string[posn]
+        @source_string[@posn]
       else
         :eof
       end
@@ -29,7 +29,7 @@ module RCCK
     end
 
     def skip
-      posn += 1
+      @posn += 1
     end
   end
 

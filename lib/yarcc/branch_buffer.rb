@@ -6,17 +6,18 @@ module RCCK
     # Setup the branching buffer.
     def initialize(pad)
       @pad = pad
+      @pad_step = 2
       @buffers = [[]]
     end
 
     # Some spaces for indenting.
-    define_method(:padding) {' ' * (@pad + 2 * depth)}
+    define_method(:padding) {' ' * (@pad + @pad_step * depth)}
 
     # How many levels of branching are there?
-    define_method(:depth) {@buffers.length}
+    define_method(:depth) {@buffers.length - 1}
 
     # Is the buffer merged to a flat file?
-    define_method(:merged?) {depth == 1}
+    define_method(:merged?) {depth == 0}
 
     # Get the last line generated.
     define_method(:last) {@buffers[0][-1]}
@@ -46,7 +47,7 @@ module RCCK
 
     # Merge the current branch with its parent.
     def merge
-      fail "Invalid action: No buffers to merge." unless depth > 1
+      fail "Invalid action: No buffers to merge." if merged?
       top = @buffers[0]
       @buffers = @buffers[1..-1]
 
@@ -57,11 +58,14 @@ module RCCK
 
     # Drop the current branch of code and revert to the parent.
     def drop
-      fail "Invalid action: Cannot drop all buffers." unless depth > 1
+      fail "Invalid action: Cannot drop all buffers." if merged?
       @buffers = @buffers[1..-1]
     end
 
     # Append a line of text to the current branch.
     define_method(:<<) {|line| @buffers[0] << (padding + line)}
+
+    # Get the last line of the current branch.
+    define_method(:last) {@buffers[0][-1]}
   end
 end

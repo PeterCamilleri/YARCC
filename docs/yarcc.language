@@ -57,7 +57,7 @@ PARSE_TREE 'V 0.0.5' 'A RCCK parse tree for parsing RCCK parse trees.'
 
 <expression>   = <term> *('|' <term>);
 
-<term> = +(<spaces> ?<modifier> <factor> ?(<spaces> '>>' <spaces> <set>));
+<term> = +(?<modifier> <factor> ?('>>' <set>));
 # Notes:
 # The prologue block is used to make additional checks before the parse is
 # attempted. If this returns true, the parse proceeds else it is skipped.
@@ -124,7 +124,7 @@ PARSE_TREE 'V 0.0.5' 'A RCCK parse tree for parsing RCCK parse trees.'
 
 <keyword>      = '"' +[ALPHA '_'] '"'
 # Note:
-# The keyword "bla" is short for  ('bla' >> [ANY - ALPHA '_'])
+# The keyword "bla" is short for  ('bla' >> [ANY - ALPHA DIGIT '_'])
 
 <in a string>  = ([PRINTABLE-'\'' '\\']) | '\\\\' | '\\''
                | ('\\'           +DIGIT  ';')

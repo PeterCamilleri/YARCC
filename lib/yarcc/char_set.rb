@@ -7,86 +7,78 @@ module RCCK
 
     # Create a char set!
     def initialize(add, remove=[])
-      @any      = add == :any
-      @char_set = Hash.new(@any)
-
-      process_specs(add, true) unless @any
+      @char_set = Hash.new(add == :any)
+      process_specs(add, true) unless @char_set.default
       process_specs(remove, false)
     end
 
     def process_specs(specs, value)
-      specs.each do |spec|
-        if spec.is_a?(Symbol)
-          @char_set[spec] = value
-        elsif spec.is_a?(Range)
-          process_range(spec, value)
-        else
-          process_chars(spec, value)
-        end
-      end
-    end
-
-    def process_range(range,value)
-      range.each do |c|
-        @char_set[c] = value
-      end
-    end
-
-    def process_chars(string, value)
-      string.chars do |c|
-        @char_set[c] = value
-      end
+      specs.spread_value(@char_set, value)
+      self
     end
 
     # Enumerate all of the values that are included.
     def each(&block)
-      fail "Forbidden operation" if @any
+      fail "Forbidden operation" if @char_set.default
 
       if block_given?
-        @char_set.each do |k,v|
-          block.call(k) if v
+        @char_set.each do |key, value|
+          block.call(key) if value
         end
       else
         self.to_enum(:each)
       end
     end
 
+    # Send char set data to the destination.
+    def spread_value(dest, value)
+      if @char_set.default && value
+        dest.default = true
+
+        @char_set.each do |key, char_set_value|
+          dest[key] = false unless char_set_value
+        end
+      else
+        self.each do |key|
+          dest[key] = value
+        end
+      end
+    end
+
     # Char set addition and subtraction
-    def add!(a_set)
-      fail "Forbidden operation" if @any
-
-      a_set.each do |k|
-        @char_set[k] = true
-      end
-
+    def add!(source)
+      fail "Cannot iterate over an 'any' char set" if @char_set.default
+      source.spread_value(@char_set, true)
       self
     end
 
-    def add(a_set)
-      self.dup.add!(a_set)
+    def add(source)
+      self.dup.dup_char_set.add!(source)
     end
 
-    def remove!(a_set)
-      a_set.each do |k|
-        @char_set[k] = false
-      end
-
+    def remove!(source)
+      source.spread_value(@char_set, false)
       self
     end
 
-    def remove(a_set)
-      self.dup.remove!(a_set)
+    def remove(source)
+      self.dup.dup_char_set.remove!(source)
     end
 
     # Parsing routines and helpers
     def parse(parse_info)
       result = peek(parse_info)
-      parse_info.dst.skip if result
+      parse_info.skip if result
       result
     end
 
     def peek(parse_info)
-      @char_set[parse_info.dst.peek]
+      @char_set[parse_info.peek]
+    end
+
+    def dup_char_set
+      @char_set = @char_set.dup
+      self
     end
   end
 end

@@ -1,4 +1,5 @@
-# Flex Format -- A flexible, configurable pretty formatting facility.
+# coding: utf-8
+# The Ruby Compiler Construction Kit -- Support
 
 class Object
   # Convert the object into an array of strings for debugging, logging etc.
@@ -9,20 +10,20 @@ class Object
     result
   end
 
+  # The flex format worker bee.
   def _ff(buffer, pad, progress)
     buffer[-1] << "#{self.class_family}"
-
     vars = self.instance_variables.sort
+    new_pad = pad + progress[:inc]
 
     if vars.empty?
-      buffer[-1] << " Value = #{self.inspect}"
+      buffer << "#{new_pad}Value = #{self.inspect}"
     else
-      buffer << "#{pad}Variables"
+      buffer << "#{new_pad}Variables:"
 
       vars.each do | name |
-        buffer << "#{pad} #{name.to_s} is "
-        var = instance_variable_get(name)
-        var._ff(buffer, pad + progress[:inc], progress)
+        buffer << "#{new_pad}#{name.to_s} is "
+        instance_variable_get(name)._ff(buffer, new_pad, progress)
       end
     end
   end
@@ -45,10 +46,20 @@ class Object
 end
 
 class Hash
+  # The flex format worker bee.
   def _ff(buffer, pad, progress)
-    buffer[-1] << "Hash = {"
-    first = true
     pad += progress[:inc]
+    buffer[-1] << "Hash = {"
+
+    if default_proc
+      buffer << "#{pad}default proc => "
+      default_proc._ff(buffer, pad + progress[:inc], progress)
+    else
+      buffer << "#{pad}default => "
+      default._ff(buffer, pad + progress[:inc], progress)
+    end
+
+    first = true
 
     self.each do |k,v|
       buffer[-1] << "," unless first
@@ -63,6 +74,7 @@ class Hash
 end
 
 class Array
+  # The flex format worker bee.
   def _ff(buffer, pad, progress)
     buffer[-1] << "Array = ["
     first_pass = true
@@ -81,15 +93,18 @@ class Array
 end
 
 module SimpleFlexFormat
+  # The flex format worker bee.
   def _ff(buffer, _pad, _progress)
     buffer[-1] << "#{self.class.inspect} #{self.inspect}"
   end
 end
 
 class String;  include SimpleFlexFormat; end
+class Symbol;  include SimpleFlexFormat; end
 class Numeric; include SimpleFlexFormat; end
 
 module MinimumFlexFormat
+  # The flex format worker bee.
   def _ff(buffer, _pad, _progress)
     buffer[-1] << "#{self.inspect}"
   end
@@ -103,6 +118,7 @@ class FalseClass; include MinimumFlexFormat; end
 
 module RCCK
   class NonTerminal
+    # The flex format worker bee.
     def _ff(buffer, pad, progress)
       buffer[-1] << "#{self.class_family}"
       pad += progress[:inc]

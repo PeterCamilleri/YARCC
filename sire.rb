@@ -46,6 +46,13 @@ eval_puts "require './lib/yarcc/flex_format'"
 puts
 
 eval_puts "@a = RCCK::ParserBootstrap.new"
+
+eval_puts "@any   = @a.get_char_set('ANY')"
+eval_puts "@print = @a.get_char_set('PRINTABLE')"
+eval_puts "@alpha = @a.get_char_set('ALPHA')"
+eval_puts "@upper = @a.get_char_set('UPPER')"
+eval_puts "@digit = @a.get_char_set('DIGIT')"
+
 puts
 
 @done    = false
